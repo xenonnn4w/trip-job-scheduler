@@ -136,6 +136,7 @@ public class SchedulerStore {
         });
     }
     public List<Run> dead(UUID tenant) { return jdbc.query("SELECT * FROM job_run WHERE tenant_id=? AND state='DEAD' ORDER BY scheduled_at LIMIT 100",RUN,tenant); }
+    public List<Run> recent(UUID tenant) { return jdbc.query("SELECT * FROM job_run WHERE tenant_id=? ORDER BY scheduled_at DESC LIMIT 100",RUN,tenant); }
     public boolean replay(UUID tenant,UUID runId) { return jdbc.update("UPDATE job_run SET state='READY',attempt=0,available_at=clock_timestamp(),last_error=NULL WHERE tenant_id=? AND id=? AND state='DEAD'",tenant,runId)==1; }
     public long count(String state) { return jdbc.queryForObject("SELECT count(*) FROM job_run WHERE state=?",Long.class,state); }
     public long effectCount(UUID runId) { return jdbc.queryForObject("SELECT count(*) FROM effect WHERE run_id=?",Long.class,runId); }

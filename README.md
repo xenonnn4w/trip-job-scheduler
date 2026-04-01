@@ -2,7 +2,7 @@
 
 A Java 21, Spring Boot, and PostgreSQL backend for scheduling one-off and recurring jobs across three worker nodes. It supports tenant time zones, sharded work assignment, fenced leases, retries, tenant concurrency limits, and an idempotent database effect ledger.
 
-**This repository has an HTTP API, not a web UI.** The steps below use `curl`. See [DESIGN.md](DESIGN.md) for the architecture, failure handling, guarantees, and trade-offs.
+The project includes a browser control room and the same operations are available through the HTTP API. See [DESIGN.md](DESIGN.md) for the architecture, failure handling, guarantees, and trade-offs.
 
 ## Prerequisites
 
@@ -25,6 +25,12 @@ curl -fsS http://localhost:8080/actuator/health
 The first build downloads the Java and PostgreSQL images and Maven dependencies, so it can take a few minutes. When ready, the health request returns `{"status":"UP"}`. Node 1 serves the examples at `http://localhost:8080`; nodes 2 and 3 serve the same API on ports 8081 and 8082. All three share one PostgreSQL database.
 
 The first startup creates the HTTP Basic user `admin` with `ADMIN_PASSWORD`. The password is stored as a BCrypt hash. **Changing the environment variable later does not change the password of an existing admin account.** Keep the password out of screenshots. Use HTTPS in front of the API before exposing it outside your machine.
+
+## Use the dashboard
+
+Open **http://localhost:8080** and sign in as `admin` with the password you chose above. The dashboard lets you create or select a tenant, create recurring or one-off jobs, trigger a run, inspect recent runs and effect counts, pause or resume the tenant, and replay dead-letter runs. Data refreshes every 15 seconds, or you can use the refresh button. Operator and employee accounts see only their own tenant; employees have read-only controls. Credentials are held only in the current browser tab and are cleared on sign-out or tab close.
+
+The dashboard is served by Spring Boot from the same origin as the API, so no frontend build or separate development server is needed. The `effect` shown in the UI is a database record, not a real cab alert.
 
 ## Try the API
 

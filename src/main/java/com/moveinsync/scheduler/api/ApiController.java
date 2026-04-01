@@ -39,6 +39,36 @@ public class ApiController {
     private void exists(UUID tenant) {
         if (jdbc.queryForObject("SELECT count(*) FROM tenant WHERE id=?",Long.class,tenant)==0) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Resource not found");
     }
+    @GetMapping("/me") public Map<String,Object> me(Authentication auth) {
+        Map<String,Object> result=new LinkedHashMap<>();
+        result.put("username",auth.getName());
+        result.put("role",admin(auth)?"ADMIN":operator(auth)?"OPERATOR":"EMPLOYEE");
+        List<UUID> ids=jdbc.query("SELECT tenant_id FROM app_user WHERE username=?",(r,n)->r.getObject(1,UUID.class),auth.getName());
+        result.put("tenantId",ids.isEmpty()?null:ids.getFirst());
+        return result;
+    }
+    @GetMapping("/tenants") public List<Map<String,Object>> tenants(Authentication auth) {
+        String columns="SELECT id,name,zone,paused,concurrency_cap AS \"concurrencyCap\" FROM tenant";
+        if(admin(auth)) return jdbc.queryForList(columns+" ORDER BY name LIMIT 200");
+        return jdbc.queryForList(columns+" WHERE id=(SELECT tenant_id FROM app_user WHERE username=?)",auth.getName());
+    }
+    @GetMapping("/tenants/{tenant}/overview") public Map<String,Object> overview(Authentication auth,@PathVariable UUID tenant) {
+        access(auth,tenant,false);exists(tenant);
+        Map<String,Object> result=new LinkedHashMap<>();
+        result.put("jobs",jdbc.queryForObject("SELECT count(*) FROM job WHERE tenant_id=? AND enabled",Long.class,tenant));
+        for(String state:List.of("READY","RUNNING","RETRY","SUCCEEDED","DEAD"))
+            result.put(state.toLowerCase(Locale.ROOT),jdbc.queryForObject("SELECT count(*) FROM job_run WHERE tenant_id=? AND state=?",Long.class,tenant,state));
+        result.put("nodes",store.activeNodes().size());
+        return result;
+    }
+    @GetMapping("/tenants/{tenant}/jobs") public List<Map<String,Object>> jobs(Authentication auth,@PathVariable UUID tenant) {
+        access(auth,tenant,false);
+        return jdbc.queryForList("SELECT id,kind,cron,next_fire_at AS \"nextFireAt\",priority,max_run_seconds AS \"maxRunSeconds\",misfire,enabled FROM job WHERE tenant_id=? ORDER BY created_at DESC LIMIT 100",tenant);
+    }
+    @GetMapping("/tenants/{tenant}/runs") public List<Run> runs(Authentication auth,@PathVariable UUID tenant) {
+        access(auth,tenant,false);
+        return store.recent(tenant);
+    }
     @PostMapping("/admin/tenants") public Map<String,Object> tenant(@Valid @RequestBody TenantRequest request) {
         ZoneId.of(request.zone()); UUID id=UUID.randomUUID();
         jdbc.update("INSERT INTO tenant(id,name,zone,concurrency_cap) VALUES (?,?,?,?)",id,request.name(),request.zone(),request.concurrencyCap());

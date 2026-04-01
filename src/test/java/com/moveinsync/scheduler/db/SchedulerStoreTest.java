@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named="TEST_DB_URL",matches=".+")
@@ -80,6 +81,23 @@ class SchedulerStoreTest {
         mvc.perform(get("/api/tenants/{tenant}/jobs/{job}/next",own,ownJob).with(httpBasic(username,"long-test-password")))
             .andExpect(status().isOk());
         mvc.perform(get("/api/tenants/{tenant}/jobs/{job}/next",other,otherJob).with(httpBasic(username,"long-test-password")))
+            .andExpect(status().isNotFound());
+    }
+    @Test void dashboardListsOnlyAuthenticatedTenantData() throws Exception {
+        UUID own=UUID.randomUUID(),other=UUID.randomUUID();
+        job(own,1);job(other,1);
+        String username="dashboard-"+UUID.randomUUID();
+        jdbc.update("INSERT INTO app_user(username,password_hash,role,tenant_id) VALUES (?,?,'EMPLOYEE',?)",username,encoder.encode("long-test-password"),own);
+        mvc.perform(get("/index.html")).andExpect(status().isOk());
+        mvc.perform(get("/app.js")).andExpect(status().isOk());
+        mvc.perform(get("/api/tenants")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/tenants").with(httpBasic(username,"long-test-password")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].id").value(own.toString()));
+        mvc.perform(get("/api/tenants/{tenant}/overview",own).with(httpBasic(username,"long-test-password")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.jobs").value(1));
+        mvc.perform(get("/api/tenants/{tenant}/jobs",other).with(httpBasic(username,"long-test-password")))
+            .andExpect(status().isNotFound());
+        mvc.perform(get("/api/tenants/{tenant}/runs",other).with(httpBasic(username,"long-test-password")))
             .andExpect(status().isNotFound());
     }
 }

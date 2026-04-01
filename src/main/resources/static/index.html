@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111f2a">
+  <title>Tripline · Scheduler Control</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <section id="login-view" class="login-view">
+    <div class="login-brand"><span class="brand-mark" aria-hidden="true">✳</span><span>TRIPLINE<span class="brand-dot">.</span></span></div>
+    <div class="login-panel">
+      <p class="eyebrow">DISTRIBUTED SCHEDULER / CONTROL ROOM</p>
+      <h1>Every trip.<br><em>On time.</em></h1>
+      <p class="login-copy">Sign in to monitor scheduled work, inspect runs, and manage your tenant's jobs.</p>
+      <form id="login-form" class="form-stack">
+        <label>Username<input id="login-user" name="username" autocomplete="username" required value="admin"></label>
+        <label>Password<input id="login-password" name="password" type="password" autocomplete="current-password" required></label>
+        <button class="button primary wide" type="submit">Enter control room <span aria-hidden="true">↗</span></button>
+      </form>
+      <p id="login-error" class="form-error" role="alert" hidden></p>
+      <p class="login-foot">Credentials stay in this browser tab and are cleared when you sign out or close it.</p>
+    </div>
+    <div class="login-visual" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div><span class="orbit-core">T</span><span class="visual-caption">256 SHARDS · 3 NODES · 1 TIMELINE</span></div>
+  </section>
+
+  <div id="app-view" class="app-shell" hidden>
+    <aside class="sidebar">
+      <a class="side-brand" href="/" aria-label="Tripline home"><span class="brand-mark">✳</span><span>TRIPLINE<span class="brand-dot">.</span></span></a>
+      <div class="side-kicker">SCHEDULER / 01</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-section="overview"><span class="nav-icon">◫</span> Overview</button>
+        <button class="nav-item" data-section="jobs"><span class="nav-icon">▦</span> Jobs</button>
+        <button class="nav-item" data-section="runs"><span class="nav-icon">◷</span> Runs</button>
+        <button class="nav-item" data-section="dead"><span class="nav-icon">♧</span> Dead letters</button>
+      </nav>
+      <div class="side-bottom"><div class="node-pill"><span class="pulse-dot"></span><span id="node-status">Checking cluster</span></div><div class="side-note">OPERATIONS, IN MOTION</div></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar"><div class="breadcrumb">WORKSPACE <span>/</span> <strong id="breadcrumb-current">OVERVIEW</strong></div><div class="top-actions"><span id="user-badge" class="user-badge"></span><button id="refresh-button" class="icon-button" title="Refresh data" aria-label="Refresh data">↻</button><button id="logout-button" class="text-button">Sign out</button></div></header>
+      <div class="content-inner">
+        <div class="heading-row"><div><p class="eyebrow">LIVE OPERATIONS / <span id="today-label"></span></p><h1 id="section-title">Control room<span class="accent-period">.</span></h1><p id="section-subtitle" class="page-subtitle">The state of every scheduled trip job, in one place.</p></div><button id="new-job-button" class="button primary" hidden>＋ New job</button></div>
+        <div class="tenant-bar"><div><span class="label-small">ACTIVE TENANT</span><select id="tenant-select" aria-label="Active tenant"></select><button id="new-tenant-button" class="row-action" hidden>＋ Add tenant</button></div><div class="tenant-meta"><span id="tenant-zone"></span><span class="divider-dot">•</span><span id="tenant-cap"></span><span id="tenant-state" class="state-tag"></span><button id="pause-mobile-button" class="row-action mobile-control" hidden>Pause tenant</button></div></div>
+        <div id="page-error" class="banner error" role="alert" hidden></div>
+
+        <section id="section-overview" class="section active">
+          <div class="stats-grid">
+            <article class="stat-card dark"><div class="stat-top"><span>ACTIVE JOBS</span><span>01 / 05</span></div><strong id="stat-jobs">—</strong><div class="stat-bottom">Scheduled for this tenant <span>↗</span></div></article>
+            <article class="stat-card"><div class="stat-top"><span>RUNNING NOW</span><span class="tiny-status"><i></i> LIVE</span></div><strong id="stat-running">—</strong><div class="stat-bottom">Currently holding a lease <span>◷</span></div></article>
+            <article class="stat-card"><div class="stat-top"><span>RETRY QUEUE</span><span>03 / 05</span></div><strong id="stat-retry">—</strong><div class="stat-bottom">Awaiting next attempt <span>↺</span></div></article>
+            <article class="stat-card alert"><div class="stat-top"><span>DEAD LETTERS</span><span>04 / 05</span></div><strong id="stat-dead">—</strong><div class="stat-bottom">Needs operator review <span>↗</span></div></article>
+          </div>
+          <div class="overview-grid"><article class="panel activity-panel"><div class="panel-heading"><div><p class="eyebrow">01 — RECENT ACTIVITY</p><h2>Latest runs</h2></div><button class="link-button" data-go="runs">View all ↗</button></div><div id="overview-runs" class="activity-list"></div></article><article class="panel queue-panel"><div class="panel-heading"><div><p class="eyebrow">02 — QUEUE HEALTH</p><h2>At a glance</h2></div></div><div id="queue-visual" class="queue-visual"></div><p class="queue-caption">Counts reflect committed database state. Refresh to see the latest snapshot.</p><div class="cluster-line"><span class="pulse-dot"></span><span id="cluster-copy">Checking cluster</span></div></article></div>
+        </section>
+
+        <section id="section-jobs" class="section"><div class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">SCHEDULE REGISTRY</p><h2>Jobs</h2></div><span id="jobs-count" class="count-label"></span></div><div class="table-wrap"><table><thead><tr><th>JOB ID</th><th>TYPE</th><th>NEXT FIRE</th><th>POLICY</th><th>STATUS</th><th></th></tr></thead><tbody id="jobs-body"></tbody></table></div></div></section>
+        <section id="section-runs" class="section"><div class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">EXECUTION LOG</p><h2>Recent runs</h2></div><span class="count-label">LATEST 100</span></div><div class="table-wrap"><table><thead><tr><th>RUN ID</th><th>SCHEDULED</th><th>ATTEMPT</th><th>FENCE</th><th>STATE</th><th></th></tr></thead><tbody id="runs-body"></tbody></table></div></div></section>
+        <section id="section-dead" class="section"><div class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">RECOVERY QUEUE</p><h2>Dead letters</h2></div><span class="count-label">LATEST 100</span></div><div class="table-wrap"><table><thead><tr><th>RUN ID</th><th>SCHEDULED</th><th>ATTEMPTS</th><th>STATE</th><th></th></tr></thead><tbody id="dead-body"></tbody></table></div></div></section>
+      </div>
+    </main>
+    <aside class="right-rail"><div class="rail-heading"><span class="rail-number">/ 02</span><span>QUICK CONTROLS</span></div><div class="rail-section"><p class="eyebrow">TENANT STATUS</p><h2 id="rail-tenant">Select a tenant</h2><p id="rail-tenant-copy">Review active schedules and current execution state.</p><button id="pause-button" class="button outline wide" hidden>Pause tenant</button></div><div class="rail-rule"></div><div class="rail-section"><p class="eyebrow">SYSTEM CLOCK</p><div id="rail-clock" class="rail-clock">--:--:--</div><p id="rail-date" class="rail-date"></p></div><div class="rail-rule"></div><div class="rail-section"><p class="eyebrow">USEFUL LINKS</p><a class="rail-link" href="/actuator/health" target="_blank" rel="noopener">Health endpoint <span>↗</span></a><a class="rail-link" href="/actuator/prometheus" target="_blank" rel="noopener">Prometheus metrics <span>↗</span></a></div><div class="rail-footer">TRIPLINE / BACKEND OPERATIONS<br>BUILT FOR THE UNEXPECTED.</div></aside>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-head"><div><p class="eyebrow">SCHEDULE / NEW</p><h2 id="modal-title">Create a job</h2></div><button id="modal-close" class="icon-button" aria-label="Close dialog">×</button></div><form id="job-form" class="form-stack"><label>Job type<select id="job-kind"><option value="CRON">Recurring (cron)</option><option value="ONE_OFF">One-off</option></select></label><label id="cron-field">Cron expression<input id="job-cron" value="0 0 22 * * *" placeholder="0 0 22 * * *"></label><label id="at-field" hidden>Fire at (your local time)<input id="job-at" type="datetime-local"></label><label>Payload<input id="job-payload" value="roster-generation" required maxlength="500" placeholder="Job payload"></label><div class="form-grid"><label>Priority<input id="job-priority" type="number" value="0"></label><label>Max run (seconds)<input id="job-max" type="number" min="1" max="3600" value="60" required></label></div><label>Misfire policy<select id="job-misfire"><option value="COALESCE">Coalesce missed runs</option><option value="FIRE_NOW">Fire missed runs now</option><option value="SKIP">Skip missed runs</option></select></label><p id="job-error" class="form-error" role="alert" hidden></p><div class="modal-actions"><button id="modal-cancel" type="button" class="button ghost">Cancel</button><button type="submit" class="button primary">Create job ↗</button></div></form></div></div>
+  <div id="tenant-modal-backdrop" class="modal-backdrop" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="tenant-modal-title"><div class="modal-head"><div><p class="eyebrow">WORKSPACE / NEW</p><h2 id="tenant-modal-title">Add a tenant</h2></div><button id="tenant-modal-close" class="icon-button" aria-label="Close dialog">×</button></div><form id="tenant-form" class="form-stack"><label>Tenant name<input id="tenant-name" required maxlength="100" placeholder="Example client"></label><label>Time zone<input id="tenant-timezone" required value="Asia/Kolkata" placeholder="Asia/Kolkata"></label><label>Concurrency cap<input id="tenant-concurrency" required type="number" min="1" max="128" value="8"></label><p id="tenant-error" class="form-error" role="alert" hidden></p><div class="modal-actions"><button id="tenant-modal-cancel" type="button" class="button ghost">Cancel</button><button type="submit" class="button primary">Add tenant ↗</button></div></form></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
