@@ -110,7 +110,7 @@ Run the unit and PostgreSQL integration tests with:
 bash scripts/test.sh
 ```
 
-The script starts a separate test database on port **55432** and runs Maven in a Docker container. The suite covers daylight-saving transitions, shard redistribution, concurrent claims, stale fencing tokens, tenant limits, retries, dead-letter replay, and tenant isolation. The last verified run had **7 passing tests**.
+The script starts a separate test database on port **55432** and runs Maven in a Docker container. The suite covers daylight-saving transitions, shard redistribution, concurrent claims, stale fencing tokens, tenant limits, retries, dead-letter replay, and tenant isolation.
 
 With the application running, you can measure a scheduler-only burst:
 
@@ -118,7 +118,17 @@ With the application running, you can measure a scheduler-only burst:
 APP_BOOTSTRAP_ADMIN_PASSWORD="$ADMIN_PASSWORD" bash scripts/benchmark.sh 1000
 ```
 
-This benchmark inserts ready runs directly into PostgreSQL, so it excludes API creation time. On one development machine (Intel Core i5-12450HX, 12 logical CPUs, 23 GiB RAM, PostgreSQL 16.13, Java 21, one worker node), 1,000 simultaneous runs completed at **120.2 runs/s**, with **7.051 s p50** and **9.286 s p99** fire lag. The case study's p99 under 2 seconds target was **not met** for that burst. The 100,000-run, three-node target has not been verified.
+This benchmark inserts ready runs directly into PostgreSQL, so it excludes API creation time. On one development machine (Intel Core i5-12450HX, 12 logical CPUs, 23 GiB RAM, PostgreSQL 16.13, Java 21, one worker node), 1,000 simultaneous runs completed at **120.2 runs/s**, with **7.051 s p50** and **9.286 s p99** fire lag. This is a burst test with a different arrival pattern from the case study workload.
+
+To exercise the case-study workload, start all three nodes (`docker compose up --build`), then run:
+
+```bash
+bash scripts/benchmark-100k.sh
+```
+
+This creates **100,000 distinct one-off jobs** for 100 tenants, evenly distributes their due times over a **10-minute window**, and waits for their real scheduler runs. It reports materialized, succeeded, dead, and effect counts, plus p50/p99/max fire lag. It seeds jobs directly in PostgreSQL so the measurement covers scheduling and execution rather than HTTP creation. Run it against a fresh database or an otherwise idle cluster for a comparable result. Each node has 16 execution threads (48 across three nodes); each benchmark tenant allows eight concurrent runs. The target is all 100,000 successful with p99 fire lag below two seconds. The earlier 1,000-run burst is a different workload and does not establish this target.
+
+**Measured on 30 October 2026:** three local Java 21 worker processes and an isolated PostgreSQL 16 container on the machine above completed **100,000/100,000 jobs** with **100,000 committed effects** and **0 dead runs**. Fire lag (`started_at - scheduled_at`, using PostgreSQL timestamps) was **0.151 s p50**, **0.694 s p99**, and **1.532 s maximum**. The three workers executed 33,594, 33,203, and 33,203 runs respectively. Each of the 100 tenants contributed 1,000 jobs. The jobs were due from 15:22:43 to 15:32:43 UTC; the last completed at 15:32:43 UTC. This meets the stated 100,000 jobs/10 minutes/three nodes/p99 under two seconds workload on this machine. It does not establish performance for a different machine or a simultaneous 100,000-job burst.
 
 ## Stop and troubleshoot
 
