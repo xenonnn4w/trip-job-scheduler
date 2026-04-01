@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/scheduler}
+    username: ${SPRING_DATASOURCE_USERNAME:scheduler}
+    password: ${SPRING_DATASOURCE_PASSWORD:scheduler}
+    hikari:
+      maximum-pool-size: 20
+  flyway:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics
+  endpoint:
+    health:
+      show-details: never
+server:
+  port: ${SERVER_PORT:8080}
+app:
+  bootstrap-admin-password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:change-me-before-production}
+  shards: 256
+  lease-seconds: 15
+  tenant-concurrency: 8
+  poll-ms: 100
+  max-attempts: 5

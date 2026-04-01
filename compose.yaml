@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: scheduler
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    ports: ["5432:5432"]
+  testdb:
+    image: postgres:16-alpine
+    profiles: ["test"]
+    environment:
+      POSTGRES_DB: scheduler_test
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler -d scheduler_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    ports: ["55432:5432"]
+  node1: &node
+    build: .
+    environment: &env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/scheduler
+      SPRING_DATASOURCE_USERNAME: scheduler
+      SPRING_DATASOURCE_PASSWORD: scheduler
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-change-me-before-production}
+    depends_on:
+      postgres: {condition: service_healthy}
+    ports: ["8080:8080"]
+  node2:
+    <<: *node
+    environment:
+      <<: *env
+      SERVER_PORT: 8081
+    ports: ["8081:8081"]
+  node3:
+    <<: *node
+    environment:
+      <<: *env
+      SERVER_PORT: 8082
+    ports: ["8082:8082"]
